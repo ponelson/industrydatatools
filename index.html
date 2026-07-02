@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>The tools behind the data · Peter Nelson</title>
+<style>
+  :root {
+    --bg: #fbfbfd;
+    --bg-elevated: rgba(251, 251, 253, 0.72);
+    --surface: #ffffff;
+    --surface-2: #f5f5f7;
+    --border: rgba(0, 0, 0, 0.08);
+    --border-strong: rgba(0, 0, 0, 0.16);
+    --text: #1d1d1f;
+    --text-secondary: #515154;
+    --text-tertiary: #86868b;
+    --accent: #0071e3;
+    --accent-soft: rgba(0, 113, 227, 0.10);
+    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04);
+    --mono: ui-monospace, "SF Mono", "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
+    --radius: 12px;
+    --radius-lg: 18px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #000000;
+      --bg-elevated: rgba(0, 0, 0, 0.72);
+      --surface: #1c1c1e;
+      --surface-2: #2c2c2e;
+      --border: rgba(255, 255, 255, 0.10);
+      --border-strong: rgba(255, 255, 255, 0.22);
+      --text: #f5f5f7;
+      --text-secondary: #a1a1a6;
+      --text-tertiary: #6e6e73;
+      --accent: #2997ff;
+      --accent-soft: rgba(41, 151, 255, 0.14);
+      --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
+    }
+  }
+
+  * { box-sizing: border-box; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-weight: 400;
+    line-height: 1.47;
+    letter-spacing: -0.003em;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Navigation */
+  nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--bg-elevated);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    border-bottom: 1px solid var(--border);
+  }
+  .nav-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 13px 22px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  .nav-brand {
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    color: var(--text);
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .nav-brand-sub {
+    color: var(--text-tertiary);
+    font-weight: 400;
+    margin-left: 8px;
+  }
+  .nav-contact { display: flex; align-items: center; gap: 4px; }
+  .nav-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: background 0.2s ease, color 0.2s ease;
+  }
+  .nav-link:hover { background: var(--surface-2); color: var(--text); }
+  .nav-link svg { width: 18px; height: 18px; display: block; }
+
+  /* Hero */
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 0 22px; }
+  .hero { padding: 84px 0 44px; text-align: center; }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 18px;
+  }
+  h1 {
+    font-size: 58px;
+    font-weight: 600;
+    line-height: 1.06;
+    letter-spacing: -0.028em;
+    margin: 0 0 18px;
+    background: linear-gradient(180deg, var(--text) 0%, var(--text-secondary) 145%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .hero-sub {
+    font-size: 20px;
+    font-weight: 400;
+    line-height: 1.42;
+    letter-spacing: 0.011em;
+    color: var(--text-secondary);
+    margin: 0 auto 24px;
+    max-width: 660px;
+  }
+  .legend {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    padding: 8px 16px;
+    border: 1px solid var(--border);
+    border-radius: 980px;
+    background: var(--surface);
+    font-family: var(--mono);
+    font-size: 12.5px;
+    color: var(--text-tertiary);
+  }
+  .legend b { color: var(--text-secondary); font-weight: 500; }
+  .legend .arrow { color: var(--accent); }
+  .legend svg { width: 13px; height: 13px; flex-shrink: 0; color: var(--text-tertiary); }
+  @media (max-width: 640px) {
+    .hero { padding: 52px 0 32px; }
+    h1 { font-size: 38px; }
+    .hero-sub { font-size: 17px; }
+    .legend { font-size: 11px; }
+  }
+
+  /* Sticky controls: search + industry tabs */
+  .controls {
+    position: sticky;
+    top: 56px;
+    z-index: 90;
+    background: var(--bg-elevated);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    border-bottom: 1px solid var(--border);
+  }
+  .controls-inner { max-width: 1200px; margin: 0 auto; padding: 12px 22px; }
+  .search-wrap { position: relative; max-width: 420px; margin: 0 auto 12px; }
+  .search-wrap svg {
+    position: absolute; left: 16px; top: 50%; transform: translateY(-50%);
+    width: 15px; height: 15px; color: var(--text-tertiary); pointer-events: none;
+  }
+  .search {
+    width: 100%;
+    padding: 11px 16px 11px 42px;
+    font-size: 14px;
+    border: 1px solid var(--border);
+    border-radius: 980px;
+    background: var(--surface);
+    color: var(--text);
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+  .search::placeholder { color: var(--text-tertiary); }
+  .search:focus { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
+
+  .tabs { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab {
+    flex-shrink: 0;
+    padding: 7px 15px;
+    border-radius: 980px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 400;
+    font-family: inherit;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.18s ease;
+  }
+  .tab:hover { color: var(--text); border-color: var(--border-strong); }
+  .tab.active { background: var(--text); color: var(--bg); border-color: var(--text); }
+
+  /* Main content */
+  main { max-width: 1200px; margin: 0 auto; padding: 44px 22px 96px; }
+  .industry { display: none; animation: fade 0.4s cubic-bezier(0.22, 1, 0.36, 1); }
+  .industry.active { display: block; }
+  @keyframes fade {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .industry-header { margin-bottom: 40px; padding-bottom: 22px; border-bottom: 1px solid var(--border); }
+  .industry-header h2 {
+    font-size: clamp(30px, 4vw, 42px);
+    font-weight: 600;
+    letter-spacing: -0.025em;
+    margin: 0 0 10px;
+  }
+  .industry-header p { color: var(--text-secondary); font-size: 17px; margin: 0; max-width: 760px; line-height: 1.45; }
+
+  .category { margin-bottom: 46px; }
+  .category-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+  .category-head h3 { font-size: 21px; font-weight: 600; letter-spacing: -0.015em; margin: 0; }
+  .category-head .what { color: var(--text-tertiary); font-size: 14px; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 20px 22px;
+    transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.25s ease, border-color 0.2s ease;
+  }
+  .card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); border-color: var(--border-strong); }
+  .card-title {
+    font-size: 16px; font-weight: 500; letter-spacing: -0.012em; margin: 0 0 7px;
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  }
+  .card-acronym {
+    font-family: var(--mono);
+    font-size: 10.5px; font-weight: 500; color: var(--accent);
+    background: var(--accent-soft); padding: 2px 7px; border-radius: 6px; letter-spacing: 0.01em;
+  }
+  .card-desc { font-size: 13.5px; color: var(--text-secondary); margin: 0; line-height: 1.5; }
+  .card-meta {
+    margin-top: 13px; padding-top: 12px; border-top: 1px solid var(--border);
+    font-family: var(--mono); font-size: 11.5px; color: var(--text-tertiary);
+    display: flex; align-items: center; gap: 7px; line-height: 1.4;
+  }
+  .card-meta svg { flex-shrink: 0; width: 12px; height: 12px; color: var(--accent); }
+  .card-meta .path { word-break: break-word; }
+
+  /* Glossary */
+  .glossary { margin-top: 72px; padding-top: 38px; border-top: 1px solid var(--border); }
+  .glossary h3 { font-size: 21px; font-weight: 600; margin: 0 0 18px; letter-spacing: -0.015em; }
+  .glossary-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 9px 24px; }
+  .gloss-item { font-size: 13px; line-height: 1.45; color: var(--text-secondary); }
+  .gloss-item b { color: var(--text); font-weight: 500; font-family: var(--mono); font-size: 12px; }
+  .gloss-item.hidden { display: none; }
+
+  .empty { text-align: center; padding: 80px 24px; color: var(--text-tertiary); font-size: 15px; }
+  .card.hidden, .category.hidden { display: none; }
+
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 30px 22px 46px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-tertiary);
+  }
+
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  }
+  @media (max-width: 640px) {
+    .controls { top: 52px; }
+    .grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a href="#" class="nav-brand">
+      Peter Nelson
+      <span class="nav-brand-sub">· Industry tools</span>
+    </a>
+    <div class="nav-contact">
+      <a href="https://linkedin.com/in/ponelson" target="_blank" rel="noopener" class="nav-link" aria-label="LinkedIn">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.063 2.063 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+        </svg>
+      </a>
+      <a href="mailto:ponelson@gmail.com" class="nav-link" aria-label="Email">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="3" y="5" width="18" height="14" rx="2"/>
+          <path d="M3 7l9 6 9-6"/>
+        </svg>
+      </a>
+    </div>
+  </div>
+</nav>
+
+<div class="wrap">
+  <section class="hero">
+    <div class="eyebrow">Industry reference</div>
+    <h1>The tools behind the data.</h1>
+    <p class="hero-sub">A field guide to the applications, pipelines, and platforms that read and write to unstructured storage across data-intensive industries: what they are, what they do, and what the acronyms mean.</p>
+    <div class="legend">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 12H2"/><path d="m5.45 5.11-3.45 6.89 3.45 6.89A2 2 0 0 0 7.24 20h9.52a2 2 0 0 0 1.79-1.11L22 12l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11Z"/></svg>
+      <span>Each card traces its path to disk: <b>app</b> <span class="arrow">→</span> <b>protocol</b> <span class="arrow">→</span> <b>storage</b></span>
+    </div>
+  </section>
+</div>
+
+<div class="controls">
+  <div class="controls-inner">
+    <div class="search-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>
+      </svg>
+      <input type="text" id="search" class="search" placeholder="Search tools, acronyms, or vendors" autocomplete="off" aria-label="Search" />
+    </div>
+    <div class="tabs" id="tabs" role="tablist"></div>
+  </div>
+</div>
+
+<main id="main"></main>
+
+<footer>A field guide, not an exhaustive catalog. Vendors rebrand and acquire constantly; entries reflect a spot-check as of mid-2026.</footer>
+
+<script>
+const data = [
+  {
+    id: "media",
+    name: "Media & Entertainment",
+    tagline: "Film, episodic TV, post-production, and animation studios working with multi-terabyte project files at sustained high throughput.",
+    categories: [
+      {
+        name: "Editorial & Finishing",
+        what: "Cut the film. Frame-accurate playback off shared storage.",
+        tools: [
+          { name: "Avid Media Composer", desc: "The dominant non-linear editor (NLE) in Hollywood and broadcast TV. Multiple editors hit the same bin and media simultaneously.", access: "Workstation → SMB share or Avid NEXIS proxy" },
+          { name: "Adobe Premiere Pro", desc: "Adobe's NLE; common in streaming, docs, and short-form. Shares projects via Productions or Team Projects.", access: "Workstation → SMB/NFS share" },
+          { name: "DaVinci Resolve", desc: "Blackmagic's edit, color, audio, and VFX suite. Dominant in color grading; also a serious editor.", access: "Workstation → SMB share + shared project DB" },
+          { name: "Final Cut Pro", desc: "Apple's NLE, magnet-based timeline; common in indie post and content houses.", access: "macOS workstation → SMB" },
+          { name: "Autodesk Flame", desc: "High-end finishing, compositing, and conform used on commercials and feature finishing bays.", access: "Linux workstation → NFS / SMB" }
+        ]
+      },
+      {
+        name: "VFX, Animation & 3D",
+        what: "Build the shot. Models, sims, renders, and comps.",
+        tools: [
+          { name: "Autodesk Maya", desc: "Industry-standard 3D modeling, rigging, and animation for film/TV VFX and games.", access: "Workstation + render nodes → NFS/SMB" },
+          { name: "SideFX Houdini", desc: "Procedural 3D and FX: destruction, fluids, smoke, particles. Sim caches can be enormous.", access: "Workstation + render farm → NFS" },
+          { name: "Foundry Nuke", desc: "Node-based 2D/3D compositing, the standard for feature-film compositing.", access: "Workstation + render farm → NFS/SMB" },
+          { name: "Pixar RenderMan", desc: "Production renderer behind much of feature animation and VFX.", acronym: "Renderer", access: "Render farm → NFS" },
+          { name: "Arnold", desc: "Autodesk's path-traced renderer; ubiquitous for film and TV.", access: "Render farm → NFS" },
+          { name: "Chaos V-Ray", desc: "Renderer used heavily in arch-viz, commercials, and some film work.", access: "Render farm → NFS/SMB" },
+          { name: "Blender", desc: "Free and open-source 3D suite, increasingly used in production, especially for episodic and short-form.", access: "Workstation/farm → NFS/SMB" },
+          { name: "ZBrush", desc: "Digital sculpting for high-poly characters and creatures.", access: "Workstation → SMB" },
+          { name: "Adobe Substance 3D", desc: "Material authoring and texturing (Painter, Designer, Sampler).", access: "Workstation → SMB" }
+        ]
+      },
+      {
+        name: "Audio Post & Music",
+        what: "Mix, score, and master.",
+        tools: [
+          { name: "Avid Pro Tools", desc: "Standard digital audio workstation (DAW) for film mixing, ADR, foley, and music production.", acronym: "DAW", access: "Workstation → SMB" },
+          { name: "Apple Logic Pro", desc: "Apple's DAW for music production and some post.", access: "macOS workstation → SMB" },
+          { name: "Steinberg Nuendo", desc: "DAW oriented toward post-production for film, TV, and games.", access: "Workstation → SMB" },
+          { name: "iZotope RX", desc: "Audio repair and restoration: dialogue cleanup, denoise.", access: "Workstation plugin → SMB" }
+        ]
+      },
+      {
+        name: "Render Management & Pipeline",
+        what: "Push frames through thousands of cores.",
+        tools: [
+          { name: "Thinkbox Deadline", desc: "Render farm management that dispatches jobs to thousands of nodes.", access: "Farm controller → NFS" },
+          { name: "Pixar Tractor", desc: "Pixar's job scheduler for render and pipeline workloads.", access: "Farm controller → NFS" },
+          { name: "Flow Production Tracking", desc: "Production tracking, review, and pipeline for VFX and animation studios. Formerly ShotGrid, before that Shotgun.", acronym: "Autodesk", access: "SaaS + on-prem media" },
+          { name: "ftrack", desc: "Production tracking and review platform, an alternative to Flow Production Tracking.", access: "SaaS + on-prem media" }
+        ]
+      },
+      {
+        name: "Asset Management & Distribution",
+        what: "Find the right take. Move masters around the world.",
+        tools: [
+          { name: "iconik", desc: "Cloud-native media asset manager (MAM) that indexes on-prem and cloud storage.", acronym: "MAM", access: "Indexes file shares" },
+          { name: "EditShare FLOW", desc: "On-prem MAM tightly integrated with EditShare storage and edit-in-place workflows.", access: "On-prem MAM → SMB" },
+          { name: "IBM Aspera", desc: "High-speed WAN file transfer using the FASP protocol; moves dailies and masters globally.", acronym: "FASP", access: "Servers on edge of storage" },
+          { name: "Signiant", desc: "Accelerated file transfer for media, a competitor to Aspera.", access: "Servers on edge of storage" },
+          { name: "FFmpeg", desc: "Open-source transcoder underneath nearly every encoder, broadcaster, and streaming workflow.", access: "Servers/farm → file share" },
+          { name: "Telestream Vantage", desc: "Enterprise transcoding and packaging for VOD, broadcast, and OTT delivery.", acronym: "OTT / VOD", access: "Vantage farm → SMB/NFS" }
+        ]
+      }
+    ]
+  },
+
+  {
+    id: "gaming",
+    name: "Gaming",
+    tagline: "Game studios with massive source-code-plus-binary-asset workloads, build farms, and cooked content for hundreds of millions of players.",
+    categories: [
+      {
+        name: "Game Engines",
+        what: "The runtime your game runs on; also the editor your team works in all day.",
+        tools: [
+          { name: "Unreal Engine", desc: "Epic Games' engine, used across AAA games, virtual production, and increasingly automotive and film.", access: "Workstation → SMB + Perforce" },
+          { name: "Unity", desc: "Cross-platform engine especially dominant in mobile and indie. Editor hits the shared workspace constantly.", access: "Workstation → SMB + VCS" },
+          { name: "Godot", desc: "Open-source engine with growing adoption in indie studios.", access: "Workstation → file share" },
+          { name: "Proprietary engines", desc: "Many large publishers (Activision, EA, Ubisoft, Rockstar) run their own engines internally with similar storage demands.", access: "Workstation + farm → on-prem" }
+        ]
+      },
+      {
+        name: "3D Content & Texturing",
+        what: "Authoring characters, environments, vehicles, weapons.",
+        tools: [
+          { name: "Autodesk Maya", desc: "3D modeling, rigging, and animation; also dominant in games, especially for cinematics.", access: "Workstation → SMB" },
+          { name: "Autodesk 3ds Max", desc: "Common for environments and props, especially in AAA studios.", access: "Workstation → SMB" },
+          { name: "Blender", desc: "Increasingly used as a free alternative, especially at smaller studios.", access: "Workstation → SMB" },
+          { name: "ZBrush", desc: "High-resolution sculpting for characters and hard-surface assets.", access: "Workstation → SMB" },
+          { name: "Adobe Substance 3D", desc: "Materials and texturing, the de-facto standard in games.", access: "Workstation → SMB" },
+          { name: "Houdini", desc: "Procedural content generation for environments and FX.", access: "Workstation + farm → NFS" }
+        ]
+      },
+      {
+        name: "Version Control & Build",
+        what: "Source code is one thing; 4K textures, audio, and movies need different plumbing.",
+        tools: [
+          { name: "Perforce Helix Core", desc: "The version control system of choice in AAA games; handles huge binary assets that Git cannot.", acronym: "VCS", access: "Perforce server → backing storage" },
+          { name: "Git + Git LFS", desc: "Git with the Large File Storage extension, used for smaller studios and code-heavy projects.", acronym: "LFS", access: "Git server → storage backend" },
+          { name: "Jenkins / TeamCity", desc: "Continuous integration servers that build and cook content nightly across platforms.", acronym: "CI", access: "CI nodes → file share" },
+          { name: "IncrediBuild", desc: "Distributed C++ compilation that accelerates massive AAA codebases across the network.", access: "Build farm → shared storage" }
+        ]
+      },
+      {
+        name: "Live Ops & Analytics",
+        what: "What players are doing right now, and how the live service responds.",
+        tools: [
+          { name: "PlayFab", desc: "Microsoft live-ops backend for player accounts, leaderboards, and game services.", access: "Cloud + telemetry to data lake" },
+          { name: "AWS GameLift", desc: "Managed dedicated server hosting for multiplayer games.", access: "Cloud, logs → object storage" },
+          { name: "Player telemetry pipelines", desc: "Often built on Kafka + Spark + Snowflake/Databricks; generate huge raw event streams.", access: "Streams → data lake" }
+        ]
+      }
+    ]
+  },
+
+  {
+    id: "sports",
+    name: "Sports & Live Production",
+    tagline: "Live broadcasts, replay rooms, league archives, and analytics shops generating petabytes of multi-camera, multi-angle video on tight deadlines.",
+    categories: [
+      {
+        name: "Replay, Servers & Production",
+        what: "Slow-mo, instant replay, multi-angle ingest, live edit.",
+        tools: [
+          { name: "EVS XT-VIA / LiveCeption", desc: "Replay and live-production servers, the workhorse in essentially every major-league truck and venue.", access: "Live ingest → high-speed shared storage" },
+          { name: "Grass Valley LDX / K-Frame", desc: "Broadcast cameras and switchers used in live sports production.", access: "Live feeds → production storage" },
+          { name: "Sony PWS / Hawk-Eye SMART", desc: "Sony's production servers and Hawk-Eye's officiating and tracking platform.", access: "Production network → SAN/NAS" },
+          { name: "Avid Media Composer", desc: "Used in highlight cutting, episodic sports, and league content teams.", access: "Workstation → shared storage" },
+          { name: "Adobe Premiere Pro", desc: "Common in social-team and digital cut-down workflows.", access: "Workstation → shared storage" }
+        ]
+      },
+      {
+        name: "Graphics & On-Air",
+        what: "Lower thirds, score bugs, virtual ads, AR overlays.",
+        tools: [
+          { name: "Vizrt", desc: "Real-time broadcast graphics, virtual studios, and AR used by most major networks.", acronym: "AR", access: "Graphics engines → shared media" },
+          { name: "Chyron", desc: "Broadcast graphics and tracking, including PRIME and Paint telestration. Formerly ChyronHego.", access: "Graphics engines → shared media" },
+          { name: "Ross XPression", desc: "Real-time motion graphics for sports scoreboards, election graphics, and news.", access: "Graphics engines → shared media" },
+          { name: "Pixotope / Zero Density", desc: "Real-time virtual production and AR built on Unreal Engine.", access: "Engine workstations → shared media" }
+        ]
+      },
+      {
+        name: "Analytics & Tracking",
+        what: "Where players went, how fast, with what biomechanics. Increasingly AI-driven.",
+        tools: [
+          { name: "Hudl / Hudl Sportscode", desc: "Video tagging, coding, and analysis platform used from high school through pro.", access: "Coach laptop → shared archive" },
+          { name: "Catapult", desc: "Wearable performance tracking via GPS and IMU sensors on athletes.", acronym: "GPS / IMU", access: "Wearables → cloud/on-prem" },
+          { name: "Hawk-Eye", desc: "Computer-vision ball and player tracking for officiating and broadcast graphics. Owned by Sony.", access: "Camera arrays → on-prem pipeline" },
+          { name: "Second Spectrum", desc: "Computer-vision tracking and data visualization; official tracking provider for the NBA and others. Owned by Genius Sports.", access: "Camera feeds → analytics cluster" },
+          { name: "Stats Perform", desc: "Sports AI, computer-vision tracking, and statistical analytics; a separate provider from Second Spectrum.", access: "Camera feeds → analytics cluster" },
+          { name: "TRACAB", desc: "Optical multi-camera tracking used widely across football and soccer leagues.", access: "Camera arrays → tracking cluster" }
+        ]
+      }
+    ]
+  },
+
+  {
+    id: "government",
+    name: "Government & Defense",
+    tagline: "Intelligence, defense, civil agencies, and law enforcement working with full-motion video, satellite imagery, simulation outputs, and surveillance archives, often under strict retention and security requirements.",
+    categories: [
+      {
+        name: "Geospatial & GIS",
+        what: "Maps, satellite imagery, terrain. The digital twin of the planet.",
+        tools: [
+          { name: "Esri ArcGIS", desc: "The dominant GIS platform for analysis, mapping, and imagery management across civil and defense use.", acronym: "GIS", access: "Workstation + server → SMB/NFS" },
+          { name: "QGIS", desc: "Open-source GIS used widely in academia and smaller agencies.", access: "Workstation → file share" },
+          { name: "Hexagon ERDAS IMAGINE", desc: "Remote-sensing and image-processing platform for satellite and aerial imagery.", access: "Workstation → file share" },
+          { name: "Maxar / Planet imagery", desc: "Commercial satellite providers; agencies pull and stage raw and processed imagery for analysis.", access: "Ingest → object/file storage" },
+          { name: "ENVI (NV5 Geospatial)", desc: "Image analysis software, heavy in hyperspectral and multispectral processing.", access: "Workstation → file share" }
+        ]
+      },
+      {
+        name: "Full-Motion Video & Surveillance",
+        what: "Body cams, drones, FMV from ISR platforms, CCTV archives.",
+        tools: [
+          { name: "Genetec Security Center", desc: "Unified physical-security platform spanning video management, access control, and ALPR.", acronym: "VMS / ALPR", access: "VMS server → file/object" },
+          { name: "Milestone XProtect", desc: "Video management system (VMS) widely used in city and enterprise surveillance.", acronym: "VMS", access: "VMS server → file/object" },
+          { name: "Motorola Avigilon", desc: "VMS plus AI-driven video search and analytics.", access: "VMS server → backing storage" },
+          { name: "Axon Evidence", desc: "Body-camera and digital-evidence platform used by law enforcement; on-prem mirrors common.", access: "Cloud + on-prem staging" },
+          { name: "FMV exploitation tools", desc: "Mission-specific tooling that pulls and analyzes ISR full-motion video feeds for intelligence workflows.", acronym: "FMV / ISR", access: "Analyst workstation → archive" }
+        ]
+      },
+      {
+        name: "Simulation, Modeling & HPC",
+        what: "Wargaming, weapons modeling, climate, intel analytics.",
+        tools: [
+          { name: "MATLAB / Simulink", desc: "Numerical computing and model-based design for radar, comms, and controls work.", access: "Workstation/cluster → NFS" },
+          { name: "ANSYS / Abaqus / LS-DYNA", desc: "Engineering simulation used for weapons, vehicles, and structures.", access: "HPC cluster → parallel filesystem" },
+          { name: "Slurm / PBS", desc: "Job schedulers running on classified and unclassified HPC clusters.", access: "Cluster → Lustre / GPFS / parallel FS" }
+        ]
+      },
+      {
+        name: "Search, Analytics & Records",
+        what: "Indexing the haystack.",
+        tools: [
+          { name: "Splunk", desc: "Log and security data platform broadly used across federal civilian and DoD.", access: "Indexers → backing storage" },
+          { name: "Elastic Stack", desc: "Elasticsearch plus Kibana for search and analytics over text and logs.", access: "Cluster nodes → backing storage" },
+          { name: "Records management (Documentum, OpenText)", desc: "Long-term, compliance-driven records archives.", access: "App server → SMB/NFS" }
+        ]
+      }
+    ]
+  },
+
+  {
+    id: "energy",
+    name: "Energy / Oil & Gas",
+    tagline: "Subsurface exploration, seismic processing, and reservoir modeling. Multi-petabyte stores driving large HPC clusters and geoscience workstations.",
+    categories: [
+      {
+        name: "Seismic Interpretation",
+        what: "Geoscientists looking at 3D volumes to find hydrocarbons or store CO2.",
+        tools: [
+          { name: "SLB Petrel", desc: "SLB's flagship subsurface software for seismic interpretation, modeling, and simulation.", access: "Workstation → SMB/NFS" },
+          { name: "Halliburton DecisionSpace 365", desc: "Landmark's interpretation and reservoir platform.", access: "Workstation → SMB/NFS" },
+          { name: "AspenTech SSE", desc: "Subsurface Science & Engineering, formerly Emerson Paradigm and Roxar. Interpretation, modeling, and processing.", access: "Workstation → file share" },
+          { name: "Kingdom (S&P Global)", desc: "Widely used in independents and small E&P shops for 2D and 3D seismic interpretation.", acronym: "E&P", access: "Workstation → file share" }
+        ]
+      },
+      {
+        name: "Seismic Processing & Imaging",
+        what: "Turning raw recordings into the 3D volumes interpreters use. Heavy HPC.",
+        tools: [
+          { name: "SLB Omega", desc: "Industry-leading seismic processing platform that runs on big HPC clusters.", access: "Cluster → parallel FS" },
+          { name: "CGG GeoCluster / Geovation", desc: "CGG's processing platform for depth imaging, FWI, and RTM.", acronym: "FWI / RTM", access: "Cluster → parallel FS" },
+          { name: "TGS / PGS in-house stacks", desc: "Service-company proprietary processing pipelines on petabyte-class storage.", access: "Cluster → parallel FS" }
+        ]
+      },
+      {
+        name: "Reservoir Simulation",
+        what: "How fluids flow through the rock. Production forecasting, recovery, CCS.",
+        tools: [
+          { name: "SLB Eclipse / INTERSECT", desc: "Industry-standard reservoir simulators, black-oil and compositional.", access: "Cluster → parallel FS" },
+          { name: "CMG (Computer Modelling Group)", desc: "GEM, IMEX, and STARS for thermal, EOR, and unconventional reservoir simulation.", acronym: "EOR", access: "Cluster → parallel FS" },
+          { name: "OPM Flow", desc: "Open Porous Media, an open-source reservoir simulator.", access: "Cluster → parallel FS" }
+        ]
+      },
+      {
+        name: "Drilling & Operations",
+        what: "Real-time drilling, well planning, production data.",
+        tools: [
+          { name: "Halliburton WellPlan / WellView", desc: "Well planning and operations data management.", access: "App server → file share" },
+          { name: "Peloton WellView", desc: "Well lifecycle data management used by many operators.", access: "App server → file share" },
+          { name: "PI System (AVEVA)", desc: "Operational data historian for sensors, SCADA, and real-time production data.", acronym: "SCADA", access: "PI archive → backing storage" }
+        ]
+      }
+    ]
+  },
+
+  {
+    id: "healthcare",
+    name: "Healthcare & Life Sciences",
+    tagline: "Genomics centers, pharma research, hospitals, and imaging cores, from sequencer output to PACS archives to cryo-EM datasets.",
+    categories: [
+      {
+        name: "Genomics & Sequencing",
+        what: "From raw reads off a sequencer to variants you can act on. Tools run on HPC, reading FASTQ/BAM/VCF files off parallel storage.",
+        tools: [
+          { name: "BWA", desc: "Aligns short DNA reads to a reference genome, the workhorse aligner alongside Bowtie.", acronym: "Burrows-Wheeler Aligner", access: "HPC node → parallel FS" },
+          { name: "GATK", desc: "Broad Institute's standard toolkit for variant discovery from aligned reads.", acronym: "Genome Analysis Toolkit", access: "HPC node → parallel FS" },
+          { name: "samtools / bcftools", desc: "Foundational utilities for manipulating SAM/BAM/CRAM and VCF files.", acronym: "SAM/BAM/VCF formats", access: "HPC node → parallel FS" },
+          { name: "STAR", desc: "Fast splice-aware aligner for RNA-seq data.", acronym: "Spliced Transcripts Alignment to a Reference", access: "HPC node → parallel FS" },
+          { name: "BLAST", desc: "Searches biological sequences for similarity to known references; a bedrock bioinformatics tool.", acronym: "Basic Local Alignment Search Tool", access: "HPC node → file share" },
+          { name: "DRAGEN (Illumina)", desc: "FPGA-accelerated secondary analysis for alignment and variant calling at extreme speed.", acronym: "FPGA acceleration", access: "Appliance / cluster → file share" },
+          { name: "Nextflow / Snakemake / Cromwell", desc: "Pipeline orchestrators that chain genomics tools together reproducibly across clusters and clouds.", access: "Workflow engine → parallel FS" }
+        ]
+      },
+      {
+        name: "Medical Imaging & PACS",
+        what: "Storing and viewing the scans (DICOM files) that radiologists read.",
+        tools: [
+          { name: "PACS", desc: "Picture Archiving and Communication System, the platform that stores and distributes medical images to radiologists. The DICOM images themselves sit on file or object storage, not in someone's SaaS.", acronym: "Picture Archiving and Communication System", access: "PACS app → SMB/NFS or S3" },
+          { name: "VNA", desc: "Vendor Neutral Archive, storing DICOM and increasingly non-DICOM imaging across modalities and departments, independent of the PACS vendor.", acronym: "Vendor Neutral Archive", access: "VNA app → backing storage" },
+          { name: "GE HealthCare Centricity", desc: "Long-standing PACS/RIS platform across many large health systems.", acronym: "RIS = Radiology Information System", access: "PACS server → file share" },
+          { name: "Philips IntelliSpace", desc: "PACS plus advanced visualization across radiology and cardiology.", access: "PACS server → file share" },
+          { name: "Sectra PACS", desc: "Diagnostic imaging platform, strong in academic medical centers.", access: "PACS server → file share" },
+          { name: "Merative (formerly Merge)", desc: "PACS and enterprise imaging, now under Merative.", access: "PACS server → file share" }
+        ]
+      },
+      {
+        name: "Microscopy & Cryo-EM",
+        what: "High-resolution imaging at the cellular and molecular scale.",
+        tools: [
+          { name: "RELION", desc: "Cryo-EM image processing for 3D reconstruction of macromolecular structures.", acronym: "Cryo-EM = Cryogenic Electron Microscopy", access: "GPU cluster → parallel FS" },
+          { name: "cryoSPARC", desc: "Cryo-EM single-particle and tomography processing platform.", access: "GPU cluster → file share" },
+          { name: "Imaris", desc: "3D and 4D image analysis for confocal and light-sheet microscopy.", access: "Workstation → SMB/NFS" },
+          { name: "Fiji / ImageJ", desc: "Open-source image analysis, a bedrock of academic bio imaging.", access: "Workstation → SMB/NFS" }
+        ]
+      },
+      {
+        name: "Clinical & Research Platforms",
+        what: "The systems holding patient data and feeding research.",
+        tools: [
+          { name: "Epic", desc: "Dominant electronic health record (EHR) in large U.S. health systems.", acronym: "EHR", access: "App tier → enterprise storage" },
+          { name: "Oracle Health (formerly Cerner)", desc: "Major EHR alternative to Epic; the Cerner business, rebranded Oracle Health.", access: "App tier → enterprise storage" },
+          { name: "REDCap", desc: "Research electronic data capture for clinical trial and study data collection.", acronym: "Research Electronic Data Capture", access: "App server → backing storage" }
+        ]
+      }
+    ]
+  },
+
+  {
+    id: "fsi",
+    name: "Financial Services",
+    tagline: "Risk, quant research, market data, fraud, and increasingly AI-on-text workloads. Heavy on time-series, low-latency, and burst compute.",
+    categories: [
+      {
+        name: "Quant Research & Backtesting",
+        what: "Hypothesize, simulate, validate, deploy.",
+        tools: [
+          { name: "kdb+ / q (KX)", desc: "Column-oriented time-series database, standard in tick-data research at banks and hedge funds.", access: "Compute → kdb segments on storage" },
+          { name: "MATLAB", desc: "Quant prototyping, fixed-income modeling, and derivatives pricing.", access: "Workstation/grid → file share" },
+          { name: "Python (pandas, NumPy, scikit-learn)", desc: "Ubiquitous research stack; reads parquet/CSV/HDF5 off shared storage.", access: "Workstation/cluster → file share" },
+          { name: "R", desc: "Statistical computing and visualization, heavily used in econometrics.", access: "Workstation → file share" }
+        ]
+      },
+      {
+        name: "Risk, Pricing & Trading Platforms",
+        what: "Mark the book, run the risk, send the order.",
+        tools: [
+          { name: "Murex", desc: "Cross-asset trading, risk, and processing platform common in tier-1 banks.", access: "App tier → enterprise storage" },
+          { name: "Calypso (Nasdaq)", desc: "Capital markets and treasury platform for trade lifecycle, risk, and collateral. Now part of Nasdaq via Adenza.", access: "App tier → enterprise storage" },
+          { name: "Numerix", desc: "Derivatives pricing and risk analytics.", access: "Grid → file share" },
+          { name: "Bloomberg Terminal", desc: "Market data, analytics, and execution; the universal desk tool.", access: "Workstation client → SaaS" },
+          { name: "LSEG Refinitiv Workspace", desc: "Bloomberg's primary alternative for market data and analytics. Formerly Eikon.", access: "Workstation client → SaaS" }
+        ]
+      },
+      {
+        name: "Analytics, ML & Data Platforms",
+        what: "Fraud, AML, surveillance, customer analytics, generative-AI pilots.",
+        tools: [
+          { name: "Snowflake / Databricks", desc: "Cloud data warehouse and lakehouse platforms, increasingly the analytics center of gravity.", access: "Cloud, but staged from on-prem" },
+          { name: "Apache Spark / Hadoop", desc: "Distributed batch analytics, still very present in banking, especially for risk and AML.", acronym: "AML = Anti-Money Laundering", access: "Cluster → HDFS/object/file" },
+          { name: "Splunk", desc: "Log analytics used heavily for fraud, security, and operations.", access: "Indexers → backing storage" }
+        ]
+      }
+    ]
+  },
+
+  {
+    id: "eda",
+    name: "Semiconductor / EDA",
+    tagline: "Chip designers using massive compute farms running design, simulation, verification, and sign-off. EDA tools run on workstations and compute farms against shared storage, with small-file I/O patterns that punish many file systems.",
+    categories: [
+      {
+        name: "Synthesis & Implementation",
+        what: "Turn RTL into a working chip layout.",
+        tools: [
+          { name: "Synopsys Design Compiler", desc: "Logic synthesis that turns Verilog/VHDL RTL into a gate-level netlist.", acronym: "RTL = Register-Transfer Level", access: "Compute farm → shared storage" },
+          { name: "Synopsys Fusion Compiler / IC Compiler II", desc: "Place-and-route for digital chips at advanced nodes.", access: "Compute farm → shared storage" },
+          { name: "Cadence Genus / Innovus", desc: "Cadence's synthesis and place-and-route, a competitor to the Synopsys flow.", access: "Compute farm → shared storage" }
+        ]
+      },
+      {
+        name: "Custom & Analog Design",
+        what: "Where transistors are drawn, not synthesized.",
+        tools: [
+          { name: "Cadence Virtuoso", desc: "Custom IC layout and schematic, dominant in analog and mixed-signal design.", acronym: "IC = Integrated Circuit", access: "Workstation → file share" },
+          { name: "Synopsys Custom Compiler", desc: "Custom layout and simulation; Synopsys's answer to Virtuoso.", access: "Workstation → file share" }
+        ]
+      },
+      {
+        name: "Verification & Simulation",
+        what: "Does the design actually do what the spec says?",
+        tools: [
+          { name: "Synopsys VCS", desc: "RTL simulator that runs huge regression suites overnight.", access: "Farm → shared storage" },
+          { name: "Cadence Xcelium", desc: "Cadence's RTL simulator, a competitor to VCS.", access: "Farm → shared storage" },
+          { name: "Siemens Questa", desc: "RTL simulation and formal verification.", access: "Farm → shared storage" },
+          { name: "Synopsys VC Formal / Cadence JasperGold", desc: "Formal verification that mathematically proves design properties.", access: "Farm → shared storage" }
+        ]
+      },
+      {
+        name: "Sign-off & Physical Verification",
+        what: "Last gates before tape-out.",
+        tools: [
+          { name: "Synopsys PrimeTime", desc: "Static timing analysis, the gold standard for sign-off.", acronym: "STA = Static Timing Analysis", access: "Farm → shared storage" },
+          { name: "Siemens Calibre", desc: "Physical verification: DRC, LVS, OPC. The dominant sign-off tool.", acronym: "DRC / LVS / OPC", access: "Farm → shared storage" },
+          { name: "Ansys RedHawk-SC / Totem", desc: "Power integrity and reliability sign-off.", access: "Farm → shared storage" }
+        ]
+      }
+    ]
+  },
+
+  {
+    id: "manufacturing",
+    name: "Manufacturing & Engineering",
+    tagline: "Automotive, aerospace, and industrial product development. CAD, simulation, and PLM with desktop apps reading from file shares, often fronted by a PLM system.",
+    categories: [
+      {
+        name: "CAD",
+        what: "Design the part. Computer-Aided Design.",
+        tools: [
+          { name: "CATIA (Dassault Systèmes)", desc: "Aerospace and automotive heavyweight, used at Airbus, Boeing, Tesla, and BMW.", acronym: "CAD", access: "Workstation → file share (PLM-managed)" },
+          { name: "Siemens NX", desc: "High-end CAD/CAM/CAE, heavy in automotive and aerospace.", acronym: "CAM / CAE", access: "Workstation → file share (PLM-managed)" },
+          { name: "PTC Creo", desc: "Parametric 3D CAD, strong in industrial machinery.", access: "Workstation → file share (PLM-managed)" },
+          { name: "SolidWorks (Dassault)", desc: "Mid-range parametric CAD, ubiquitous in product design.", access: "Workstation → file share" },
+          { name: "Autodesk Inventor", desc: "Parametric CAD for mechanical product design.", access: "Workstation → file share" }
+        ]
+      },
+      {
+        name: "PLM",
+        what: "Track every revision of every part through every program.",
+        tools: [
+          { name: "Siemens Teamcenter", desc: "Product Lifecycle Management, the system of record for CAD, BOMs, and change orders.", acronym: "PLM / BOM = Bill of Materials", access: "App tier → file vault (storage)" },
+          { name: "PTC Windchill", desc: "PLM aligned with PTC Creo and IoT initiatives.", access: "App tier → file vault" },
+          { name: "Dassault ENOVIA / 3DEXPERIENCE", desc: "PLM aligned with CATIA and SolidWorks.", access: "App tier → file vault" }
+        ]
+      },
+      {
+        name: "Simulation (CAE / CFD / FEA)",
+        what: "Will it hold? Will it crash? How will the air flow?",
+        tools: [
+          { name: "ANSYS Mechanical / Fluent", desc: "FEA and CFD for structures, fluids, and electromagnetics.", acronym: "FEA / CFD", access: "HPC cluster → parallel FS" },
+          { name: "Abaqus (Dassault SIMULIA)", desc: "Nonlinear FEA, heavy in crash, drop, and composites.", access: "HPC cluster → parallel FS" },
+          { name: "Ansys LS-DYNA", desc: "Explicit dynamics for crashworthiness, impact, and blast.", access: "HPC cluster → parallel FS" },
+          { name: "Siemens Star-CCM+", desc: "CFD for industrial flows: aerodynamics, thermal, multiphase.", access: "HPC cluster → parallel FS" },
+          { name: "Altair HyperWorks", desc: "Pre/post and solver suite for meshing, optimization, and FEA.", access: "Workstation + cluster → file share" }
+        ]
+      },
+      {
+        name: "Autonomous & ADAS Data",
+        what: "Petabytes of driving data feeding perception model training.",
+        tools: [
+          { name: "ROS / ROS 2", desc: "Robot Operating System, ubiquitous in autonomy stacks. Logs as ROS bags.", acronym: "ROS", access: "Vehicle → ingest → training storage" },
+          { name: "MDF4 / ADTF / RTMaps", desc: "Vehicle data formats and middleware used in automotive validation.", acronym: "ADAS = Advanced Driver-Assistance Systems", access: "Ingest → archive → ML training" },
+          { name: "PyTorch / TensorFlow", desc: "Train perception, prediction, and planning models on the recorded data.", access: "GPU cluster → parallel FS" }
+        ]
+      }
+    ]
+  },
+
+  {
+    id: "research",
+    name: "Research & HPC",
+    tagline: "National labs, universities, and weather agencies. HPC weather, CFD, and physics runs on supercomputers against parallel filesystems (Lustre, GPFS, WEKA, BeeGFS).",
+    categories: [
+      {
+        name: "Weather, Climate & Earth",
+        what: "Numerical weather prediction and climate simulation.",
+        tools: [
+          { name: "WRF", desc: "Atmospheric model used widely for research and operational forecasting.", acronym: "Weather Research and Forecasting model", access: "HPC cluster → parallel FS" },
+          { name: "ECMWF IFS", desc: "European Centre's Integrated Forecasting System, among the world's top operational forecast models.", acronym: "Integrated Forecasting System", access: "HPC cluster → parallel FS" },
+          { name: "MPAS", desc: "NCAR's next-generation global model using a variable-resolution mesh.", acronym: "Model for Prediction Across Scales", access: "HPC cluster → parallel FS" },
+          { name: "CESM / E3SM", desc: "Community and DOE Earth-system climate models. Long, large, expensive simulations.", access: "HPC cluster → parallel FS" }
+        ]
+      },
+      {
+        name: "Physics, Chemistry & Biology",
+        what: "Molecular dynamics, ab initio chemistry, particle physics.",
+        tools: [
+          { name: "GROMACS", desc: "Molecular dynamics for proteins, membranes, and drug design.", access: "GPU/CPU cluster → parallel FS" },
+          { name: "NAMD", desc: "Scalable molecular dynamics, strong on large biomolecular systems.", access: "Cluster → parallel FS" },
+          { name: "AMBER", desc: "Molecular dynamics suite popular in computational chemistry.", access: "Cluster → parallel FS" },
+          { name: "VASP / Quantum ESPRESSO", desc: "Density-functional theory codes for materials science.", acronym: "DFT = Density Functional Theory", access: "Cluster → parallel FS" },
+          { name: "ROOT (CERN)", desc: "Data analysis framework dominating particle physics.", access: "Analysis cluster → file/object" }
+        ]
+      },
+      {
+        name: "Schedulers, Containers & Pipelines",
+        what: "How big jobs actually run.",
+        tools: [
+          { name: "Slurm", desc: "Dominant HPC job scheduler at national labs and universities.", access: "Scheduler → compute → parallel FS" },
+          { name: "PBS Pro / OpenPBS / LSF", desc: "Alternative HPC schedulers, common in industry HPC.", access: "Scheduler → compute → parallel FS" },
+          { name: "Singularity / Apptainer", desc: "Containers for HPC; run reproducible environments without root.", access: "Cluster → file share for images" },
+          { name: "Kubernetes", desc: "Increasingly used for AI training and inference even alongside HPC.", access: "Cluster → CSI to storage" }
+        ]
+      },
+      {
+        name: "Parallel & Scale-Out Storage",
+        what: "What sits underneath all of the above.",
+        tools: [
+          { name: "Lustre", desc: "Open-source parallel filesystem powering many of the world's top supercomputers.", access: "Clients → OSTs/MDTs" },
+          { name: "IBM Storage Scale (GPFS)", desc: "IBM's parallel filesystem, widely deployed in weather, finance, and research. Formerly Spectrum Scale.", acronym: "GPFS = General Parallel File System", access: "Clients → NSDs" },
+          { name: "WEKA (WekaFS)", desc: "All-flash parallel file system optimized for AI/ML and HPC workloads.", access: "Clients → POSIX/NFS/SMB/S3" },
+          { name: "BeeGFS", desc: "Open-source parallel filesystem used widely in HPC.", access: "Clients → storage/metadata targets" },
+          { name: "DAOS", desc: "Open-source object store for HPC and AI, built for NVMe and persistent memory.", access: "Clients → NVMe/SCM tiers" },
+          { name: "VAST Data", desc: "Disaggregated, shared-everything all-flash scale-out platform for AI and analytics.", access: "Clients → NFS/SMB/S3" },
+          { name: "Dell PowerScale", desc: "Scale-out NAS for unstructured data. Formerly Isilon.", access: "Clients → NFS/SMB/S3" }
+        ]
+      },
+      {
+        name: "AI / ML Infrastructure (cross-industry)",
+        what: "The shared stack pulling all of this into one workload pattern.",
+        tools: [
+          { name: "PyTorch / TensorFlow / JAX", desc: "The frameworks model training runs in.", access: "GPU nodes → parallel FS / object" },
+          { name: "NVIDIA CUDA / NCCL", desc: "GPU compute and multi-GPU communication libraries underneath the frameworks.", acronym: "NCCL = NVIDIA Collective Communications Library", access: "GPU node-local + network" },
+          { name: "Ray", desc: "Distributed Python, increasingly used for training, RL, and serving.", access: "Cluster → file/object" },
+          { name: "MLflow / Weights & Biases", desc: "Experiment tracking and model registry.", access: "App tier → file/object" }
+        ]
+      }
+    ]
+  }
+];
+
+const glossary = [
+  ["ADAS", "Advanced Driver-Assistance Systems, automotive driver-aid stacks."],
+  ["ALPR", "Automatic License Plate Recognition."],
+  ["AML", "Anti-Money Laundering, regulatory monitoring of financial transactions."],
+  ["AR", "Augmented Reality, overlaying graphics on live video."],
+  ["BAM / SAM / CRAM", "Binary / Sequence Alignment Map and its compressed form, standard genomics alignment file formats."],
+  ["BOM", "Bill of Materials, the parts list for a product."],
+  ["CAD / CAM / CAE", "Computer-Aided Design / Manufacturing / Engineering."],
+  ["CCS", "Carbon Capture and Storage."],
+  ["CFD", "Computational Fluid Dynamics, simulating air, water, and gas flow."],
+  ["CI", "Continuous Integration, automated build and test on every code change."],
+  ["Cryo-EM", "Cryogenic Electron Microscopy, imaging biomolecules at near-atomic resolution."],
+  ["DAW", "Digital Audio Workstation, software for recording, editing, and mixing audio."],
+  ["DFT", "Density Functional Theory, quantum-mechanical materials simulation."],
+  ["DICOM", "Digital Imaging and Communications in Medicine, the medical-imaging file format and protocol."],
+  ["DRC / LVS / OPC", "Design Rule Check / Layout Versus Schematic / Optical Proximity Correction, chip sign-off steps."],
+  ["E&P", "Exploration and Production, upstream oil and gas."],
+  ["EDA", "Electronic Design Automation, software for designing chips."],
+  ["EHR", "Electronic Health Record, the patient charts and clinical data system."],
+  ["EOR", "Enhanced Oil Recovery."],
+  ["FASP", "Fast And Secure Protocol, Aspera's high-speed transfer protocol."],
+  ["FASTQ", "Raw sequencing read format, the data coming off a DNA sequencer."],
+  ["FEA", "Finite Element Analysis, structural and physical simulation."],
+  ["FMV", "Full-Motion Video, typically from ISR platforms."],
+  ["FPGA", "Field-Programmable Gate Array, a reconfigurable hardware accelerator."],
+  ["FWI / RTM", "Full-Waveform Inversion / Reverse-Time Migration, advanced seismic imaging methods."],
+  ["GIS", "Geographic Information System, mapping and geospatial analysis."],
+  ["GPFS", "General Parallel File System, IBM's parallel filesystem (now Storage Scale)."],
+  ["GPS / IMU", "Global Positioning System / Inertial Measurement Unit, location and motion sensors."],
+  ["HPC", "High-Performance Computing, clusters and supercomputers."],
+  ["IC", "Integrated Circuit, a chip."],
+  ["ISR", "Intelligence, Surveillance, and Reconnaissance."],
+  ["LFS", "Large File Storage, a Git extension for binary assets."],
+  ["MAM / PAM", "Media / Production Asset Management."],
+  ["NLE", "Non-Linear Editor, modern video editing software."],
+  ["OTT / VOD", "Over-The-Top streaming / Video On Demand."],
+  ["PACS", "Picture Archiving and Communication System, a medical-imaging archive."],
+  ["PLM", "Product Lifecycle Management."],
+  ["RIS", "Radiology Information System, the workflow system around radiology."],
+  ["ROS", "Robot Operating System, middleware for robotics and autonomy."],
+  ["RTL", "Register-Transfer Level, the abstraction at which digital chips are described."],
+  ["SCADA", "Supervisory Control and Data Acquisition, industrial control systems."],
+  ["STA", "Static Timing Analysis, verifying digital chip timing without simulation."],
+  ["VCS", "Version Control System."],
+  ["VMS", "Video Management System, a surveillance video platform."],
+  ["VNA", "Vendor Neutral Archive, a medical-imaging archive independent of any PACS vendor."]
+];
+
+// Render
+const tabsEl = document.getElementById("tabs");
+const mainEl = document.getElementById("main");
+
+data.forEach((ind, i) => {
+  const btn = document.createElement("button");
+  btn.className = "tab" + (i === 0 ? " active" : "");
+  btn.textContent = ind.name;
+  btn.dataset.target = ind.id;
+  btn.setAttribute("role", "tab");
+  btn.setAttribute("aria-selected", i === 0 ? "true" : "false");
+  btn.addEventListener("click", () => {
+    document.getElementById("search").value = "";
+    runSearch("");
+    document.querySelectorAll(".tab").forEach(t => { t.classList.remove("active"); t.setAttribute("aria-selected", "false"); });
+    btn.classList.add("active");
+    btn.setAttribute("aria-selected", "true");
+    document.querySelectorAll(".industry").forEach(s => s.classList.remove("active"));
+    document.getElementById("section-" + ind.id).classList.add("active");
+    window.scrollTo({ top: document.querySelector(".controls").offsetTop - 56, behavior: "smooth" });
+  });
+  tabsEl.appendChild(btn);
+});
+
+data.forEach((ind, i) => {
+  const sec = document.createElement("section");
+  sec.className = "industry" + (i === 0 ? " active" : "");
+  sec.id = "section-" + ind.id;
+
+  const head = document.createElement("div");
+  head.className = "industry-header";
+  head.innerHTML = `<h2>${ind.name}</h2><p>${ind.tagline}</p>`;
+  sec.appendChild(head);
+
+  ind.categories.forEach(cat => {
+    const cdiv = document.createElement("div");
+    cdiv.className = "category";
+    const chead = document.createElement("div");
+    chead.className = "category-head";
+    chead.innerHTML = `<h3>${cat.name}</h3><span class="what">${cat.what}</span>`;
+    cdiv.appendChild(chead);
+
+    const grid = document.createElement("div");
+    grid.className = "grid";
+    cat.tools.forEach(t => {
+      const card = document.createElement("div");
+      card.className = "card";
+      const acronymBadge = t.acronym ? `<span class="card-acronym">${t.acronym}</span>` : "";
+      const meta = t.access ? `<div class="card-meta">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12H2"/><path d="m5.45 5.11-3.45 6.89 3.45 6.89A2 2 0 0 0 7.24 20h9.52a2 2 0 0 0 1.79-1.11L22 12l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11Z"/></svg>
+          <span class="path">${t.access}</span>
+        </div>` : "";
+      card.innerHTML = `
+        <div class="card-title"><span>${t.name}</span>${acronymBadge}</div>
+        <p class="card-desc">${t.desc}</p>
+        ${meta}
+      `;
+      card.dataset.search = (t.name + " " + t.desc + " " + (t.acronym || "") + " " + (t.access || "")).toLowerCase();
+      grid.appendChild(card);
+    });
+
+    cdiv.appendChild(grid);
+    sec.appendChild(cdiv);
+  });
+
+  mainEl.appendChild(sec);
+});
+
+// Persistent acronym glossary
+const globalGloss = document.createElement("section");
+globalGloss.className = "glossary";
+globalGloss.id = "glossary";
+globalGloss.innerHTML = `<h3>Acronym glossary</h3><div class="glossary-grid">${
+  glossary.map(([k, v]) => `<div class="gloss-item" data-search="${(k + " " + v).toLowerCase()}"><b>${k}</b> ${v}</div>`).join("")
+}</div>`;
+mainEl.appendChild(globalGloss);
+
+// Search
+const searchInput = document.getElementById("search");
+
+function runSearch(raw) {
+  const q = raw.toLowerCase().trim();
+
+  document.querySelectorAll(".industry").forEach(sec => {
+    let anyVisible = false;
+    sec.querySelectorAll(".category").forEach(cat => {
+      let catHasMatch = false;
+      cat.querySelectorAll(".card").forEach(card => {
+        const matches = !q || card.dataset.search.includes(q);
+        card.classList.toggle("hidden", !matches);
+        if (matches) catHasMatch = true;
+      });
+      cat.classList.toggle("hidden", !catHasMatch);
+      if (catHasMatch) anyVisible = true;
+    });
+    if (q) {
+      sec.classList.toggle("active", anyVisible);
+    } else {
+      const activeTab = document.querySelector(".tab.active");
+      sec.classList.toggle("active", sec.id === "section-" + activeTab.dataset.target);
+    }
+  });
+
+  // Filter glossary too
+  let glossMatch = false;
+  document.querySelectorAll(".gloss-item").forEach(item => {
+    const matches = !q || item.dataset.search.includes(q);
+    item.classList.toggle("hidden", !matches);
+    if (matches) glossMatch = true;
+  });
+  document.getElementById("glossary").style.display = glossMatch ? "" : "none";
+}
+
+searchInput.addEventListener("input", e => runSearch(e.target.value));
+</script>
+</body>
+</html>
